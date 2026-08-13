@@ -1,4 +1,3 @@
-# youtube_shorts_auto.py
 import os
 import json
 import random
@@ -25,26 +24,17 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-# ---- Scheduler ----
-import schedule
-
-# ---- ENV variables ----
 load_dotenv()
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-# YouTube OAuth token (base64 encoded) - will be decoded
 TOKEN_B64 = os.getenv("YOUTUBE_TOKEN_B64")
 
-# ---- Folders ----
 Path("outputs").mkdir(exist_ok=True)
 Path("downloads").mkdir(exist_ok=True)
 Path("used_topics").mkdir(exist_ok=True)
 
-# ============================================================
-# 1. TOPICS GENERATOR (1050 topics)
-# ============================================================
-def generate_topics_file():
+def generate_topics():
     if os.path.exists("topics.json"):
         return
     niches = {
@@ -77,9 +67,6 @@ def generate_topics_file():
         json.dump(all_topics[:1050], f, indent=2, ensure_ascii=False)
     print("✅ 1050+ topics generated")
 
-# ============================================================
-# 2. CORE CLASS
-# ============================================================
 class ShortsAutomation:
     def __init__(self):
         self.pexels_key = PEXELS_API_KEY
@@ -87,16 +74,14 @@ class ShortsAutomation:
         self.tg_chat = TELEGRAM_CHAT_ID
         self.topics = []
         self.load_topics()
-        # Load YouTube credentials from base64 if provided
         self.youtube_creds = None
         if TOKEN_B64:
             try:
                 token_data = base64.b64decode(TOKEN_B64)
                 self.youtube_creds = pickle.loads(token_data)
-                print("✅ YouTube credentials loaded from secret.")
-            except:
-                pass
-        # If no creds, we'll run OAuth flow (requires browser) - only for local testing
+                print("✅ YouTube credentials loaded.")
+            except Exception as e:
+                print(f"⚠️ Token decode error: {e}")
 
     def load_topics(self):
         if os.path.exists("topics.json"):
@@ -110,9 +95,9 @@ class ShortsAutomation:
                 return set(f.read().splitlines())
         return set()
 
-    def mark_used(self, topic_id):
+    def mark_used(self, topic):
         with open("used_topics/used.txt", "a") as f:
-            f.write(str(topic_id) + "\n")
+            f.write(topic + "\n")
 
     def get_next_topic(self):
         used = self.get_used()
@@ -160,16 +145,16 @@ class ShortsAutomation:
         audio = AudioFileClip(audio_path)
         duration = min(audio.duration, 58)
         bg = VideoFileClip(bg_path)
-        bg = bg.resized(height=1920).with_duration(duration)
+        bg = bg.resize(height=1920).with_duration(duration)
         txt = TextClip(
             text=text,
-            font_size=50,
+            fontsize=50,
             color='white',
             stroke_color='black',
             stroke_width=2,
             font='Arial',
-            method='caption',
-            size=(bg.w * 0.9, None)
+            method='label',
+            size=(int(bg.w * 0.9), None)
         ).with_position(('center', 0.75), relative=True).with_duration(duration)
         final = CompositeVideoClip([bg, txt]).with_audio(audio)
         final.write_videofile(output_path, fps=24, codec='libx264', audio_codec='aac', threads=4)
@@ -220,21 +205,17 @@ class ShortsAutomation:
         return "approve"
 
     def upload_youtube(self, video_path, topic, niche):
-        # Use stored credentials if available
         creds = self.youtube_creds
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                # Fallback to OAuth flow (only works if browser available)
+                print("⚠️ No valid credentials, falling back to client_secret.json")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "client_secret.json",
                     scopes=["https://www.googleapis.com/auth/youtube.upload"]
                 )
                 creds = flow.run_local_server(port=0)
-            # Save for future
-            with open("token.pickle", "wb") as f:
-                pickle.dump(creds, f)
         youtube = build("youtube", "v3", credentials=creds)
         now = datetime.datetime.now()
         target = now.replace(hour=7, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)
@@ -290,15 +271,13 @@ class ShortsAutomation:
             await self.generate_audio(script, audio_path)
             self.download_bg("cinematic", bg_path)
             self.render_shorts(audio_path, bg_path, script, vid_path)
-            print("🔄 Auto-uploading retry version...")
             self.upload_youtube(vid_path, topic, niche)
 
 def main():
     print("="*50)
-    print("🤖 YOUTUBE SHORTS AUTOMATOR (GitHub Actions)")
+    print("🤖 YOUTUBE SHORTS AUTOMATOR (GitHub Actions - FINAL)")
     print("="*50)
-    generate_topics_file()
-    # If running on GitHub Actions, we just run once
+    generate_topics()
     auto = ShortsAutomation()
     asyncio.run(auto.run_once())
 
