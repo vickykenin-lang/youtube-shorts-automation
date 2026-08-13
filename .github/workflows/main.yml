@@ -1,0 +1,5 @@
+- name: Install dependencies
+  run: |
+    pip install --upgrade pip
+    pip install -U edge-tts  # Yahan -U (upgrade) add kiya hai
+    pip install -r requirements.txt
