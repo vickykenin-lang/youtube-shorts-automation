@@ -12,7 +12,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # ---- Video & Audio ----
-from moviepy import VideoFileClip, AudioFileClip, CompositeVideoClip, TextClip
+from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip, TextClip
 import edge_tts
 
 # ---- Telegram ----
