@@ -1,34 +1,27 @@
 name: Daily Shorts Generator
 
-# 1. Action kab chalega (Push hone par, ya manual)
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
-# 2. Kaam shuru
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
-    
+
     steps:
-      # Code ko download karein
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Python set karein
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # 3. Dependencies install karein (Aapka code yahan aayega)
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -U edge-tts
           pip install -r requirements.txt
 
-      # 4. Script run karein
       - name: Run script
         run: python youtube_shorts_auto.py
