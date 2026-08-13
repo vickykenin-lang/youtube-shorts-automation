@@ -1,10 +1,22 @@
-    def generate_audio(self, text, audio_path):
-        """Generate TTS audio using gTTS."""
-        try:
-            tts = gTTS(text=text, lang='en')  # यदि हिंदी चाहिए तो 'en' की जगह 'hi' लिखें
-            tts.save(audio_path)
-            print(f"✅ Audio generated successfully: {audio_path}")
-            return audio_path
-        except Exception as e:
-            print(f"❌ Error generating audio: {e}")
-            return None
+import os
+import json
+import random
+import asyncio
+import requests
+import datetime
+import time
+import base64
+import pickle
+from pathlib import Path
+from dotenv import load_dotenv
+# --- Video & Audio --- |
+from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip, TextClip
+from gtts import gTTS  # <--- यहाँ edge_tts की जगह gtts डाला है
+# --- Telegram ---
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+# --- Youtube ---
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
